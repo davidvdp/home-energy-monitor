@@ -4,11 +4,11 @@
 #if HA_ENABLED == true
 
     #include <Arduino.h>
-    #include <WiFiClientSecure.h>
+    #include <WiFiClient.h>
     #include <MQTTClient.h>
     #include "../config/config.h"
 
-    WiFiClientSecure HA_net;
+    WiFiClient HA_net;
     MQTTClient HA_mqtt(1024);
 
     extern unsigned short measurements[];
@@ -64,6 +64,7 @@
             if(!HA_mqtt.connected()){
                 serial_println(F("[MQTT] HA connection failed. Waiting 30s.."));
                 vTaskDelay(30000 / portTICK_PERIOD_MS);
+                continue;
             }
 
             serial_println(F("[MQTT] HA Connected!"));

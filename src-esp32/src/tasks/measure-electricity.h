@@ -21,7 +21,14 @@ void measureElectricity(void * parameter)
       long start = millis();
 
       double amps = emon1.calcIrms(1480);
+      double WattsOffset = *static_cast<double*>(parameter);
       double watts = amps * HOME_VOLTAGE;
+      watts -= WattsOffset;
+      amps = watts / HOME_VOLTAGE;
+      serial_print("[ENERGY] Watts: ");
+      Serial.println(watts, 4);
+      serial_print("[ENERGY] Ampere: ");
+      Serial.println(amps, 4);
 
       gDisplayValues.amps = amps;
       gDisplayValues.watt = watts;

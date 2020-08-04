@@ -5,24 +5,43 @@
 #include "config/config.h"
 #include "config/enums.h"
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 
-#include "tasks/updateDisplay.h"
 #include "tasks/fetch-time-from-ntp.h"
-#include "tasks/mqtt-aws.h"
 #include "tasks/wifi-connection.h"
 #include "tasks/wifi-update-signalstrength.h"
 #include "tasks/measure-electricity.h"
 #include "tasks/mqtt-home-assistant.h"
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 DisplayValues gDisplayValues;
 EnergyMonitor emon1;
 
 // Place to store local measurements before sending them off to AWS
 unsigned short measurements[LOCAL_MEASUREMENTS];
 unsigned char measureIndex = 0;
+bool calibrating = false;
+double WattsOffset = 0.0;
+
+void calibrate()
+{
+  if (!calibrating){
+    calibrating = true;
+    double WattsOffsetWork = 0;
+    for (short i = 0; i < LOCAL_MEASUREMENTS-1; i++){
+        WattsOffsetWork += measurements[i];
+        measurements[i] = 0;
+    }
+    WattsOffsetWork /= LOCAL_MEASUREMENTS;
+    if (WattsOffset >= 0.001 || WattsOffset <= -0.001){
+        serial_println("Reset!");
+        WattsOffset = 0.0;
+    } 
+    else {
+        WattsOffset = WattsOffsetWork;
+        serial_print("Calibrated! Watt Offset: ");
+        serial_println(WattsOffset);
+    } 
+  }
+}
 
 void setup()
 {
@@ -35,25 +54,13 @@ void setup()
   analogReadResolution(ADC_BITS);
   pinMode(ADC_INPUT, INPUT);
 
-  // i2c for the OLED panel
-  Wire.begin(5, 4); 
-
-  // Initialize the display
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C, false, false)) {
-    serial_println(F("SSD1306 allocation failed"));
-    delay(10*1000);
-    ESP.restart();
-  }
-
-  // Init the display
-  display.clearDisplay();
-  display.setRotation(3);
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setTextWrap(false);
-
   // Initialize emon library
-  emon1.current(ADC_INPUT, 30);
+  double current_constant = TRANSFORMER_RATIO / BURDEN_RESISTOR;
+  emon1.current(ADC_INPUT, current_constant);
+
+  // Allow for calibration with no-current through CT clamps
+  pinMode(CALBIBRATION_BTN, INPUT);
+  attachInterrupt(digitalPinToInterrupt(CALBIBRATION_BTN), calibrate, RISING);
 
   // ----------------------------------------------------------------
   // TASK: Connect to WiFi & keep the connection alive.
@@ -69,42 +76,13 @@ void setup()
   );
 
   // ----------------------------------------------------------------
-  // TASK: Connect to AWS & keep the connection alive.
-  // ----------------------------------------------------------------
-  #if AWS_ENABLED == true
-    xTaskCreate(
-      keepAWSConnectionAlive,
-      "MQTT-AWS",      // Task name
-      5000,            // Stack size (bytes)
-      NULL,             // Parameter
-      5,                // Task priority
-      NULL              // Task handle
-    );
-  #endif
-
-  // ----------------------------------------------------------------
-  // TASK: Update the display every second
-  //       This is pinned to the same core as Arduino
-  //       because it would otherwise corrupt the OLED
-  // ----------------------------------------------------------------
-  xTaskCreatePinnedToCore(
-    updateDisplay,
-    "UpdateDisplay",  // Task name
-    10000,            // Stack size (bytes)
-    NULL,             // Parameter
-    3,                // Task priority
-    NULL,             // Task handle
-    ARDUINO_RUNNING_CORE
-  );
-
-  // ----------------------------------------------------------------
   // Task: measure electricity consumption ;)
   // ----------------------------------------------------------------
   xTaskCreate(
     measureElectricity,
     "Measure electricity",  // Task name
     5000,                  // Stack size (bytes)
-    NULL,                   // Parameter
+    &WattsOffset,            // Parameter
     4,                      // Task priority
     NULL                    // Task handle
   );
@@ -159,4 +137,5 @@ void setup()
 void loop()
 {
   vTaskDelay(10000 / portTICK_PERIOD_MS);
+  calibrating = false;
 }
