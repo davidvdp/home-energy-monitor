@@ -6,7 +6,6 @@
 
 #include "../config/config.h"
 #include "../config/enums.h"
-#include "mqtt-aws.h"
 #include "mqtt-home-assistant.h"
 
 extern DisplayValues gDisplayValues;
@@ -37,17 +36,6 @@ void measureElectricity(void * parameter)
       measureIndex++;
 
       if(measureIndex == LOCAL_MEASUREMENTS){
-          #if AWS_ENABLED == true
-            xTaskCreate(
-              uploadMeasurementsToAWS,
-              "Upload measurements to AWS",
-              10000,             // Stack size (bytes)
-              NULL,             // Parameter
-              5,                // Task priority
-              NULL              // Task handle
-            );
-          #endif
-
           #if HA_ENABLED == true
             xTaskCreate(
               sendEnergyToHA,
