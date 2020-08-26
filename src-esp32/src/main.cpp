@@ -13,33 +13,40 @@
 #include "tasks/mqtt-home-assistant.h"
 
 DisplayValues gDisplayValues;
-EnergyMonitor emon1;
+EnergyMonitor emon1[NR_INPUTS];
+
 
 // Place to store local measurements before sending them off to AWS
-unsigned short measurements[LOCAL_MEASUREMENTS];
+unsigned short pins[] = {ADC_INPUTS};
+unsigned short measurements[NR_INPUTS][LOCAL_MEASUREMENTS];
 unsigned char measureIndex = 0;
 bool calibrating = false;
-double WattsOffset = 0.0;
+double WattsOffset[NR_INPUTS];
 
 void calibrate()
 {
   if (!calibrating){
     calibrating = true;
-    double WattsOffsetWork = 0;
-    for (short i = 0; i < LOCAL_MEASUREMENTS-1; i++){
-        WattsOffsetWork += measurements[i];
-        measurements[i] = 0;
+    for (size_t i_pin = 0; i_pin < NR_INPUTS; i_pin++)
+    {
+      double WattsOffsetWork = 0;
+      for (short i = 0; i < LOCAL_MEASUREMENTS; i++){
+          WattsOffsetWork += measurements[i_pin][i];
+          measurements[i_pin][i] = 0;
+      }
+      WattsOffsetWork /= LOCAL_MEASUREMENTS;
+      if (WattsOffset[i_pin] >= 0.001 || WattsOffset[i_pin] <= -0.001){
+          serial_print(i_pin);
+          serial_println(" has been reset!");
+          WattsOffset[i_pin] = 0.0;
+      } 
+      else {
+          WattsOffset[i_pin] = WattsOffsetWork;
+          serial_print(i_pin);
+          serial_print(" has been calibrated! Watt Offset: ");
+          serial_println(WattsOffset[i_pin]);
+      } 
     }
-    WattsOffsetWork /= LOCAL_MEASUREMENTS;
-    if (WattsOffset >= 0.001 || WattsOffset <= -0.001){
-        serial_println("Reset!");
-        WattsOffset = 0.0;
-    } 
-    else {
-        WattsOffset = WattsOffsetWork;
-        serial_print("Calibrated! Watt Offset: ");
-        serial_println(WattsOffset);
-    } 
   }
 }
 
@@ -49,14 +56,18 @@ void setup()
     Serial.begin(115200);
   #endif 
 
-  // Setup the ADC
-  adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
-  analogReadResolution(ADC_BITS);
-  pinMode(ADC_INPUT, INPUT);
+  for (size_t i_pin = 0; i_pin < NR_INPUTS; i_pin++)
+  {
+    // Setup the ADC
+    analogReadResolution(ADC_BITS);
+    pinMode(pins[i_pin], INPUT);
+  
+    // Initialize emon library
+    double current_constant = TRANSFORMER_RATIO / BURDEN_RESISTOR;
+    emon1[i_pin].current(pins[i_pin], current_constant);
+    WattsOffset[i_pin] = 2.0;
+  }
 
-  // Initialize emon library
-  double current_constant = TRANSFORMER_RATIO / BURDEN_RESISTOR;
-  emon1.current(ADC_INPUT, current_constant);
 
   // Allow for calibration with no-current through CT clamps
   pinMode(CALBIBRATION_BTN, INPUT);
@@ -82,7 +93,7 @@ void setup()
     measureElectricity,
     "Measure electricity",  // Task name
     5000,                  // Stack size (bytes)
-    &WattsOffset,            // Parameter
+    NULL,            // Parameter
     4,                      // Task priority
     NULL                    // Task handle
   );
