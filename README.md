@@ -25,8 +25,6 @@ This project consists out of multiple components:
 
 | Folder            | Description         | Build status | 
 | ----------------- | ------------------- | ------------ | 
-| `src-app`         | Mobile app (Ionic)  | n/a |
-| `src-aws`         | Serverless AWS backend + GraphQL API | ![AWS Build Status](https://github.com/Savjee/home-energy-monitor/workflows/aws/badge.svg) |
 | `src-esp32`       | Firmware for the ESP32 (measuring device) | ![Firmware Build Status](https://github.com/Savjee/home-energy-monitor/workflows/firmware/badge.svg) |
 
 (TODO: add instructions on how to deploy all of this. 😅)
@@ -49,11 +47,8 @@ This is the cloud architecture that powers the energy meter and the app:
 ![AWS Cloud Architecture](https://savjee.github.io/home-energy-monitor/readme-images/architecture.png)
 
 In a nutshell:
-* The ESP32 has a MQTT connection with AWS IoT Core
-* Every 30 seconds, 30 measurements are sent to AWS
-* These measurements are stored in DynamoDB (IoT Rule)
-* Once a day, all readings from the previous day are archived to S3
-* A GraphQL API (hosted on Lambda) exposes the data stored in DynamoDB
+* The ESP32 has a MQTT connection
+* Every 30 seconds, 30 measurements are sent to Home assistant
 
 ## Screenshots
 
@@ -76,7 +71,6 @@ To build your own Energy Monitor you need the following hardware:
 * 2 resistors (between 10k-470kΩ)
 
 Other requirements:
-* AWS Account (Should be able to run in free-tier)
 * Install [PlatformIO](https://platformio.org) on your system
 * Drivers for your ESP32 board
 
