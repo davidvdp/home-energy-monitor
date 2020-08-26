@@ -12,7 +12,8 @@
     WiFiClient HA_net;
     MQTTClient HA_mqtt(1024);
 
-    extern unsigned short measurements[][LOCAL_MEASUREMENTS];
+    extern double measurements[][LOCAL_MEASUREMENTS];
+    extern double WattsOffset[NR_INPUTS];
 
     const char* PROGMEM HA_discovery_msg = "{"
             "\"name\":\"" DEVICE_NAME "\","
@@ -143,8 +144,16 @@
         for (size_t i_input = 0; i_input < NR_INPUTS; i_input++)
         {
             char msg[30];
+            double power = 0;
+            for (size_t i_meas = 0; i_meas < LOCAL_MEASUREMENTS; i_meas++)
+            {
+                power += measurements[i_input][i_meas];
+            }
+            power /= LOCAL_MEASUREMENTS;
+            power -= WattsOffset[i_input];
+            
             strcpy(msg, "{\"power\":");
-            strcat(msg, String(measurements[i_input][LOCAL_MEASUREMENTS-1]).c_str());
+            strcat(msg, String(power).c_str());
             strcat(msg, "}");
             serial_print("[MQTT] HA publish: ");
             serial_println(msg);

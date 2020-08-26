@@ -7,21 +7,37 @@
 #define DEBUG true
 
 /**
- * The name of this device (as defined in the AWS IOT console).
- * Also used to set the hostname on the network
+ * The name of this device last character is used for the id
  */
-#define DEVICE_NAME "*****YOUR AWS IOT DEVICE NAME******"
+#define DEVICE_NAME "ct_power_meter_x"
 
 /**
- * ADC input pin that is used to read out the CT sensor
+ * ADC input pin that is used to read out the CT sensors
  */
-#define ADC_INPUT 36
+#define NR_INPUTS 4 // max 10
+#define ADC_INPUTS 34, 35, 32, 33
+
+/**
+ * Calibration button input
+ */
+#define CALBIBRATION_BTN 2
 
 /**
  * The voltage of your home, used to calculate the wattage.
  * Try setting this as accurately as possible.
  */
-#define HOME_VOLTAGE 245.0
+#define HOME_VOLTAGE 230.0
+
+/**
+ * The transformer ratio of CT clamp as noted on device.
+ * 100 A / 50 mA
+ */
+#define TRANSFORMER_RATIO 100.0 / 0.05
+
+/**
+ * The impedence of the burden resitor used in Ohm.
+ */
+#define BURDEN_RESISTOR 176
 
 /**
  * WiFi credentials
@@ -42,11 +58,6 @@
  */
 #define WIFI_RECOVER_TIME_MS 20000 // 20 seconds
 
-/**
- * Dimensions of the OLED display attached to the ESP
- */
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
 
 /**
  * Force Emonlib to assume a 3.3V supply to the CT sensor
@@ -59,14 +70,6 @@
  */
 #define LOCAL_MEASUREMENTS 30
 
-
-/**
- * The MQTT endpoint of the service we should connect to and receive messages
- * from.
- */
-#define AWS_ENABLED true
-#define AWS_IOT_ENDPOINT "**** YOUR AWS IOT ENDPOINT ****"
-#define AWS_IOT_TOPIC "**** YOUR AWS IOT RULE ARN ****"
 
 #define MQTT_CONNECT_DELAY 200
 #define MQTT_CONNECT_TIMEOUT 20000 // 20 seconds
@@ -83,9 +86,9 @@
 /**
  * Wether or not you want to enable Home Assistant integration
  */
-#define HA_ENABLED false
+#define HA_ENABLED true
 #define HA_ADDRESS "*** YOUR HOME ASSISTANT IP ADDRESSS ***"
-#define HA_PORT 8883
+#define HA_PORT 1883
 #define HA_USER "*** MQTT USER ***"
 #define HA_PASSWORD "*** MQTT PASSWORD ***"
 

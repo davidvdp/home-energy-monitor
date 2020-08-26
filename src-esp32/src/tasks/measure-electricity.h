@@ -10,7 +10,7 @@
 
 extern DisplayValues gDisplayValues;
 extern EnergyMonitor emon1[];
-extern unsigned short measurements[NR_INPUTS][LOCAL_MEASUREMENTS];
+extern double measurements[NR_INPUTS][LOCAL_MEASUREMENTS];
 extern unsigned char measureIndex;
 extern double WattsOffset[NR_INPUTS];
 
@@ -24,7 +24,6 @@ void measureElectricity(void * parameter)
       {    
         double amps = emon1[i_pin].calcIrms(1480);
         double watts = amps * HOME_VOLTAGE;
-        watts -= WattsOffset[i_pin];
         amps = watts / HOME_VOLTAGE;
         serial_print("[ENERGY] ");
         serial_print(i_pin);

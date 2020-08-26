@@ -18,7 +18,7 @@ EnergyMonitor emon1[NR_INPUTS];
 
 // Place to store local measurements before sending them off to AWS
 unsigned short pins[] = {ADC_INPUTS};
-unsigned short measurements[NR_INPUTS][LOCAL_MEASUREMENTS];
+double measurements[NR_INPUTS][LOCAL_MEASUREMENTS];
 unsigned char measureIndex = 0;
 bool calibrating = false;
 double WattsOffset[NR_INPUTS];
@@ -32,20 +32,12 @@ void calibrate()
       double WattsOffsetWork = 0;
       for (short i = 0; i < LOCAL_MEASUREMENTS; i++){
           WattsOffsetWork += measurements[i_pin][i];
-          measurements[i_pin][i] = 0;
       }
       WattsOffsetWork /= LOCAL_MEASUREMENTS;
-      if (WattsOffset[i_pin] >= 0.001 || WattsOffset[i_pin] <= -0.001){
-          serial_print(i_pin);
-          serial_println(" has been reset!");
-          WattsOffset[i_pin] = 0.0;
-      } 
-      else {
-          WattsOffset[i_pin] = WattsOffsetWork;
-          serial_print(i_pin);
-          serial_print(" has been calibrated! Watt Offset: ");
-          serial_println(WattsOffset[i_pin]);
-      } 
+      WattsOffset[i_pin] = WattsOffsetWork;
+      serial_print(i_pin);
+      serial_print(" has been calibrated! Watt Offset: ");
+      serial_println(WattsOffset[i_pin]); 
     }
   }
 }
